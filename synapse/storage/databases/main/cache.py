@@ -161,7 +161,7 @@ class CacheInvalidationWorkerStore(SQLBaseStore):
                     row.type,
                     row.state_key,
                     row.redacts,
-                    row.relates_to,
+                    [row.relates_to],
                     backfilled=True,
                 )
         elif stream_name == CachesStream.NAME:
@@ -200,7 +200,7 @@ class CacheInvalidationWorkerStore(SQLBaseStore):
                 data.type,
                 data.state_key,
                 data.redacts,
-                data.relates_to,
+                [data.relates_to] if type(data.relates_to) is str else [],
                 backfilled=False,
             )
         elif row.type == EventsStreamCurrentStateRow.TypeId:
@@ -223,7 +223,7 @@ class CacheInvalidationWorkerStore(SQLBaseStore):
         etype: str,
         state_key: Optional[str],
         redacts: Optional[str],
-        relates_to: Optional[str],
+        relations: List[str],
         backfilled: bool,
     ) -> None:
         # This invalidates any local in-memory cached event objects, the original
@@ -263,7 +263,7 @@ class CacheInvalidationWorkerStore(SQLBaseStore):
             )
             self._attempt_to_invalidate_cache("get_rooms_for_user", (state_key,))
 
-        if relates_to:
+        for relates_to in relations:
             self._attempt_to_invalidate_cache("get_relations_for_event", (relates_to,))
             self._attempt_to_invalidate_cache("get_references_for_event", (relates_to,))
             self._attempt_to_invalidate_cache("get_applicable_edit", (relates_to,))
